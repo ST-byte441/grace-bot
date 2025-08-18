@@ -91,7 +91,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (sub === 'list') {
-      const rows = db.prepare(`SELECT id, channel_id, cron, tz, role_id, message, enabled FROM schedules WHERE guild_id = ? ORDER BY id`).all(interaction.guildId) as { //TODO: make a TSTypes
+      const rows = db.prepare(`SELECT id, channel_id, cron, tz, role_id, message, enabled FROM schedules WHERE guild_id = ? ORDER BY id`).all(interaction.guildId) as { //TODO: make a TSTypes and add this...
         id: number;
         channel_id: string;
         cron: string;
