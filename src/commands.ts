@@ -53,5 +53,11 @@ export const commandData = [
         .setDescription('Remove a reaction role from a message')
         .addStringOption(o => o.setName('message_id').setDescription('Message ID').setRequired(true))
         .addStringOption(o => o.setName('emoji').setDescription('Emoji to remove').setRequired(true)))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+    .addSubcommand(sc =>
+      sc.setName('edit')
+        .setDescription('Edit an existing reaction role message')
+        .addStringOption(o => o.setName('message_id').setDescription('Message ID to edit').setRequired(true))
+        .addStringOption(o => o.setName('title').setDescription('New title (optional)').setRequired(false))
+        .addStringOption(o => o.setName('description').setDescription('New description (optional)').setRequired(false)))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles) 
 ].map(c => c.toJSON());

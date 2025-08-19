@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { db } from '../db.js';
 
 export async function handleReactionRoleCommand(interaction: ChatInputCommandInteraction) {
@@ -23,6 +23,19 @@ export async function handleReactionRoleCommand(interaction: ChatInputCommandInt
     const messageId = interaction.options.getString('message_id', true);
     const emoji = interaction.options.getString('emoji', true);
     const role = interaction.options.getRole('role', true);
+
+    // Hierarchy checker
+    const guild = interaction.guild!;
+    const me = guild.members.me!;
+    const targetRole = guild.roles.cache.get(role.id);
+
+    if (!targetRole || targetRole.position >= me.roles.highest.position) {
+      return interaction.reply({ content: 'I cannot manage that role due to **role hierarchy**.', ephemeral: true });
+    }
+
+    if (!me.permissions.has(PermissionFlagsBits.ManageRoles)) {
+      return interaction.reply({ content: 'I need **Manage Roles** permission.', ephemeral: true });
+}
 
     try {
       const message = await interaction.channel?.messages.fetch(messageId);
@@ -64,4 +77,37 @@ export async function handleReactionRoleCommand(interaction: ChatInputCommandInt
       return interaction.reply({ content: 'Reaction role not found.', ephemeral: true });
     }
   }
+
+  if (sub === 'edit') {
+    const messageId = interaction.options.getString('message_id', true);
+    const title = interaction.options.getString('title');
+    const description = interaction.options.getString('description');
+
+    try {
+      const message = await interaction.channel?.messages.fetch(messageId);
+      if (!message) {
+        return interaction.reply({ content: 'Message not found in this channel.', ephemeral: true });
+      }
+
+      // Check if message has embeds
+      if (!message.embeds.length) {
+        return interaction.reply({ content: 'This message is not a reaction role message (no embed found).', ephemeral: true });
+      }
+
+      const existingEmbed = message.embeds[0];
+      const newEmbed = new EmbedBuilder()
+        .setTitle(title || existingEmbed?.title || 'Reaction Roles')
+        .setDescription(description || existingEmbed?.description || 'React to get roles!')
+        .setColor(existingEmbed?.color || 0x0099FF);
+
+      if (existingEmbed?.footer) { // Check for if footer exists
+        newEmbed.setFooter(existingEmbed.footer);
+      }
+
+      await message.edit({ embeds: [newEmbed] });
+      return interaction.reply({ content: 'Reaction role message updated!', ephemeral: true });
+    } catch (error) {
+      return interaction.reply({ content: 'Failed to edit message. Make sure the message ID is correct and I have permission to edit it.', ephemeral: true });
+    }
+}
 }
