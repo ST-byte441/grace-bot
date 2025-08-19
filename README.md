@@ -27,7 +27,7 @@ A Discord bot for scheduling messages and reaction roles!
 
 ### First-time setup:
 1. Install PM2 globally: `npm install -g pm2`
-2. Start your bot: `npm run pm2:start`
+2. Start the bot: `npm run pm2:start`
 3. **Enable auto-startup (CRITICAL for persistence):**
    ```bash
    pm2 startup
@@ -60,21 +60,22 @@ The bot will automatically start! No need to run anything.
 - `/reactionrole create` - Create a reaction role message
 - `/reactionrole add` - Add emoji-role mapping to a message
 - `/reactionrole remove` - Remove emoji-role mapping.
+- `/reactionrole edit` - Edit an existing reaction role message content
 
 ## Troubleshooting
 
-### If your bot stops after server reboot:
+### If the bot stops after server reboot:
 ```bash
 pm2 startup  # Reconfigure auto-startup
 pm2 save     # Save current processes
 ```
 
-### If PM2 loses your bot:
+### If PM2 loses the bot:
 ```bash
 npm run pm2:start  # Restart from config file
 ```
 
-### Check if your bot is really running:
+### Check if the bot is really running:
 ```bash
 pm2 list             # Show all PM2 processes
 pm2 logs grace-bot   # Show recent logs
