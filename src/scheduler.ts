@@ -3,11 +3,7 @@ import cron from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
 import { db } from './db.js';
 import { Client, TextChannel } from 'discord.js';
-
-type JobRow = {
-  id: number; guild_id: string; channel_id: string; message: string;
-  role_id: string | null; cron: string; tz: string; enabled: number;
-};
+import type { JobRow } from './types.js';
 
 const tasks = new Map<number, ScheduledTask>();
 
