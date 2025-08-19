@@ -43,14 +43,14 @@ A Discord bot for scheduling messages and reaction roles!
 - `npm run pm2:status` - Check bot status
 
 ### After server reboot:
-Your bot will automatically start! No need to run anything.
+The bot will automatically start! No need to run anything.
 
 ## How it works:
-- **PM2 runs independently** of VS Code, terminals, or user sessions
-- **Your bot runs as a background process** managed by PM2
-- **Automatically restarts** if it crashes
-- **Survives server reboots** (with proper startup configuration)
-- **You can close your computer** and the bot keeps running on the server
+- PM2 runs independently of VS Code, terminals, or user sessions
+- The bot runs as a background process managed by PM2
+- Automatically restarts if it crashes
+- Survives server reboots (with proper startup configuration)
+- You can close your computer and the bot keeps running on the server
 
 ## Commands
 - `/schedule ping` - Schedule a message with cron expression
@@ -76,10 +76,12 @@ npm run pm2:start  # Restart from config file
 
 ### Check if your bot is really running:
 ```bash
-pm2 list           # Show all PM2 processes
-pm2 logs grace-bot # Show recent logs
-ps aux | grep node # Show all Node.js processes
+pm2 list             # Show all PM2 processes
+pm2 logs grace-bot   # Show recent logs
+ps aux | grep node   # Show all Node.js processes
 ```
 
-## Upcoming Features
-- Larger database connect for algos
+## Possible Upcoming Features
+- Larger database connect for algos (daily algo questions)
+- AI addition for... well AI's sake
+- SDI/Behavioral interview Q/A
