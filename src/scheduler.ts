@@ -29,11 +29,23 @@ export function loadAllSchedules(client: Client) {
   console.log(`🔁 Loaded ${tasks.size} scheduled jobs.`);
 }
 
-export function addScheduleToRuntime(id: number, cronExpr: string, tz: string, fn: () => Promise<void>) { // adds new schedule at runtime
-  if (!cron.validate(cronExpr)) return;
-  const task = cron.schedule(cronExpr, fn, { timezone: tz || 'UTC' });
+export function addScheduleToRuntime(id: number, cronExpr: string, tz: string, fn: () => Promise<void>) {
+  console.log(`Setting up schedule #${id} with cron: ${cronExpr} (${tz})`);
+  
+  const task = cron.schedule(cronExpr, async () => {
+    console.log(`⏰ Executing scheduled job #${id} (${cronExpr})`);
+    try {
+      await fn();
+      console.log(`✅ Successfully executed job #${id}`);
+    } catch (error) {
+      console.error(`❌ Failed to execute job #${id}:`, error);
+    }
+  }, { timezone: tz });
+  
   tasks.set(id, task);
+  return task;
 }
+
 export function removeScheduleFromRuntime(id: number) { // stops and removes schedule by ID
   const t = tasks.get(id);
   if (t) { t.stop(); tasks.delete(id); }
