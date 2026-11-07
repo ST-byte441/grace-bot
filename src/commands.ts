@@ -59,5 +59,19 @@ export const commandData = [
         .addStringOption(o => o.setName('message_id').setDescription('Message ID to edit').setRequired(true))
         .addStringOption(o => o.setName('title').setDescription('New title (optional)').setRequired(false))
         .addStringOption(o => o.setName('description').setDescription('New description (optional)').setRequired(false)))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles) 
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+
+  new SlashCommandBuilder()
+    .setName('nickname')
+    .setDescription('Change or reset a member\'s nickname')
+    .addSubcommand(sc =>
+      sc.setName('set')
+        .setDescription('Set a member\'s nickname')
+        .addUserOption(o => o.setName('user').setDescription('Target user').setRequired(true))
+        .addStringOption(o => o.setName('nickname').setDescription('New nickname').setRequired(true).setMaxLength(32)))
+    .addSubcommand(sc =>
+      sc.setName('reset')
+        .setDescription('Reset a member\'s nickname')
+        .addUserOption(o => o.setName('user').setDescription('Target user').setRequired(true)))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames) // Server admins can restrict to specific roles in Server Settings > Integrations
 ].map(c => c.toJSON());
