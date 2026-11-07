@@ -61,6 +61,7 @@ The bot will automatically start! No need to run anything.
 - `/reactionrole add` - Add emoji-role mapping to a message
 - `/reactionrole remove` - Remove emoji-role mapping.
 - `/reactionrole edit` - Edit an existing reaction role message content
+- `/nickname set/reset` - Change or reset another member's nickname (requires Manage Nicknames by default; restrict to specific roles under Server Settings → Integrations)
 
 ## Troubleshooting
 
