@@ -4,3 +4,6 @@ dist/
 *.tsbuildinfo
 *.log
 *.db
+*.db-shm
+*.db-wal
+CLAUDE.md
