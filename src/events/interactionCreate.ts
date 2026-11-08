@@ -4,6 +4,7 @@ import { handleScheduleCommand } from '../commands/scheduleCommands.js';
 import { handleReactionRoleCommand } from '../commands/reactionRoleCommands.js';
 import { handleNicknameCommand } from '../commands/nicknameCommands.js';
 import { handleMusicCommand } from '../commands/musicCommands.js';
+import { handleHelpCommand } from '../commands/helpCommand.js';
 
 export async function handleInteractionCreate(interaction: Interaction) {
   if (!interaction.isChatInputCommand()) return;
@@ -24,5 +25,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
     case 'pause':
     case 'resume':
       return handleMusicCommand(interaction);
+    case 'help':
+      return handleHelpCommand(interaction);
   }
 }

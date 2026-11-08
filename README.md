@@ -69,6 +69,7 @@ The bot will automatically start! No need to run anything.
 - `/play <song or YouTube link>` - Search YouTube (pick from the top 5) or queue a link directly
 - `/skip`, `/pause`, `/resume`, `/remove <position>` - Control playback (must be in the bot's voice channel)
 - `/queue` - Show what's playing and up next
+- `/help` - List the commands you can use (only the ones your permissions allow)
 
 The bot needs **Connect**, **Speak** and **Set Voice Channel Status** in voice channels. It shows the current song as the channel status and leaves when the queue ends or the channel empties.
 

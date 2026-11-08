@@ -90,4 +90,9 @@ export const commandData = [
     .setContexts(InteractionContextType.Guild),
   new SlashCommandBuilder().setName('pause').setDescription('Pause the music').setContexts(InteractionContextType.Guild),
   new SlashCommandBuilder().setName('resume').setDescription('Resume the music').setContexts(InteractionContextType.Guild),
+
+  new SlashCommandBuilder()
+    .setName('help')
+    .setDescription('List the commands you can use')
+    .setContexts(InteractionContextType.Guild),
 ].map(c => c.toJSON());
