@@ -14,6 +14,13 @@ import type { AudioStream } from './ytdlp.js';
 // One session per guild; in memory only
 const sessions = new Map<string, MusicSession>();
 
+export interface SessionDeps {
+  connection: VoiceConnection;
+  setStatus: (status: string) => Promise<void>;
+  player?: AudioPlayer;
+  openStream?: (url: string) => AudioStream;
+}
+
 export function getSession(guildId: string): MusicSession | undefined {
   return sessions.get(guildId);
 }
@@ -22,24 +29,21 @@ export class MusicSession {
   readonly guildId: string;
   readonly channelId: string;
   readonly queue = new TrackQueue();
-  readonly #client: Client;
+  readonly #setStatus: (status: string) => Promise<void>;
+  readonly #openStream: (url: string) => AudioStream;
   readonly #connection: VoiceConnection;
   readonly #player: AudioPlayer;
   #resource: AudioResource | undefined;
   #stream: AudioStream | undefined;
   #destroyed = false;
 
-  private constructor(channel: VoiceBasedChannel) {
-    this.guildId = channel.guild.id;
-    this.channelId = channel.id;
-    this.#client = channel.client;
-    this.#connection = joinVoiceChannel({
-      channelId: channel.id,
-      guildId: channel.guild.id,
-      adapterCreator: channel.guild.voiceAdapterCreator,
-      selfDeaf: true,
-    });
-    this.#player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
+  private constructor(guildId: string, channelId: string, deps: SessionDeps) {
+    this.guildId = guildId;
+    this.channelId = channelId;
+    this.#connection = deps.connection;
+    this.#setStatus = deps.setStatus;
+    this.#openStream = deps.openStream ?? openAudioStream;
+    this.#player = deps.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
     this.#connection.subscribe(this.#player);
 
     // A finished, skipped or failed track all end in Idle: move on
@@ -67,8 +71,23 @@ export class MusicSession {
   }
 
   static create(channel: VoiceBasedChannel): MusicSession {
-    const session = new MusicSession(channel);
-    sessions.set(session.guildId, session);
+    const client: Client = channel.client;
+    const connection = joinVoiceChannel({
+      channelId: channel.id,
+      guildId: channel.guild.id,
+      adapterCreator: channel.guild.voiceAdapterCreator,
+      selfDeaf: true,
+    });
+    return MusicSession.createWith(channel.guild.id, channel.id, {
+      connection,
+      setStatus: status => setVoiceStatus(client, channel.id, status),
+    });
+  }
+
+  // Builds and registers a session from explicit dependencies (also the seam the tests use)
+  static createWith(guildId: string, channelId: string, deps: SessionDeps): MusicSession {
+    const session = new MusicSession(guildId, channelId, deps);
+    sessions.set(guildId, session);
     return session;
   }
 
@@ -109,7 +128,7 @@ export class MusicSession {
     this.#resource = undefined;
     this.queue.clear();
     this.#player.stop(true);
-    void setVoiceStatus(this.#client, this.channelId, '');
+    void this.#setStatus('');
     if (this.#connection.state.status !== VoiceConnectionStatus.Destroyed) this.#connection.destroy();
   }
 
@@ -125,7 +144,7 @@ export class MusicSession {
         return;
       }
       try {
-        this.#stream = openAudioStream(track.url);
+        this.#stream = this.#openStream(track.url);
         this.#resource = createAudioResource(this.#stream.stream, { inputType: StreamType.OggOpus });
         this.#player.play(this.#resource);
         void this.#showStatus(voiceStatusText(track));
@@ -143,6 +162,6 @@ export class MusicSession {
     } catch {
       return;
     }
-    if (!this.#destroyed) await setVoiceStatus(this.#client, this.channelId, status);
+    if (!this.#destroyed) await this.#setStatus(status);
   }
 }
