@@ -7,12 +7,12 @@ export function handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceStat
   if (!session) return;
 
   if (newState.id === newState.client.user.id) {
-    if (newState.channelId !== session.channelId) session.destroy();
+    if (newState.channelId !== session.channelId) void session.destroy();
     return;
   }
 
   if (oldState.channelId === session.channelId && newState.channelId !== session.channelId) {
     const humans = oldState.channel?.members.filter(m => !m.user.bot).size ?? 0;
-    if (humans === 0) session.destroy();
+    if (humans === 0) void session.destroy();
   }
 }

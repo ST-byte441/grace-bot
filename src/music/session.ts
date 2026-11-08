@@ -19,7 +19,11 @@ export interface SessionDeps {
   setStatus: (status: string) => Promise<void>;
   player?: AudioPlayer;
   openStream?: (url: string) => AudioStream;
+  readyTimeoutMs?: number;
 }
+
+const DEFAULT_READY_TIMEOUT_MS = 20_000;
+const STATUS_CLEAR_TIMEOUT_MS = 2_000;
 
 export function getSession(guildId: string): MusicSession | undefined {
   return sessions.get(guildId);
@@ -36,6 +40,8 @@ export class MusicSession {
   #resource: AudioResource | undefined;
   #stream: AudioStream | undefined;
   #destroyed = false;
+  #leaving: Promise<void> = Promise.resolve();
+  readonly #readyTimeoutMs: number;
 
   private constructor(guildId: string, channelId: string, deps: SessionDeps) {
     this.guildId = guildId;
@@ -43,7 +49,9 @@ export class MusicSession {
     this.#connection = deps.connection;
     this.#setStatus = deps.setStatus;
     this.#openStream = deps.openStream ?? openAudioStream;
-    this.#player = deps.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
+    this.#readyTimeoutMs = deps.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS;
+    // maxMissedFrames 250 (5 s) rides out short YouTube stalls instead of ending the song early
+    this.#player = deps.player ?? createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause, maxMissedFrames: 250 } });
     this.#connection.subscribe(this.#player);
 
     // A finished, skipped or failed track all end in Idle: move on
@@ -63,11 +71,18 @@ export class MusicSession {
           entersState(this.#connection, VoiceConnectionStatus.Connecting, 5_000),
         ]);
       } catch {
-        this.destroy();
+        void this.destroy();
       }
     });
-    this.#connection.on(VoiceConnectionStatus.Destroyed, () => this.destroy());
+    this.#connection.on(VoiceConnectionStatus.Destroyed, () => void this.destroy());
     this.#connection.on('error', err => console.error('[music]', `voice connection error in guild ${this.guildId}:`, err.message));
+
+    // A voice handshake that never completes would leave a dead session that keeps accepting songs
+    entersState(this.#connection, VoiceConnectionStatus.Ready, this.#readyTimeoutMs).catch(() => {
+      if (this.#destroyed) return;
+      console.warn('[music]', `voice connection in guild ${this.guildId} never became ready; leaving`);
+      void this.destroy();
+    });
   }
 
   static create(channel: VoiceBasedChannel): MusicSession {
@@ -99,7 +114,8 @@ export class MusicSession {
   }
 
   skip(): void {
-    this.#player.stop(); // Idle handler advances (or leaves if nothing is left)
+    // Forced: a plain stop() only pads silence, which never plays while paused or loading
+    this.#player.stop(true); // Idle handler advances (or leaves if nothing is left)
   }
 
   pause(): boolean {
@@ -119,8 +135,9 @@ export class MusicSession {
     return this.#resource ? Math.floor(this.#resource.playbackDuration / 1000) : 0;
   }
 
-  destroy(): void {
-    if (this.#destroyed) return;
+  // Idempotent. Clears the channel status first (the endpoint needs the bot still connected), then disconnects
+  destroy(): Promise<void> {
+    if (this.#destroyed) return this.#leaving;
     this.#destroyed = true;
     if (sessions.get(this.guildId) === this) sessions.delete(this.guildId);
     this.#stream?.kill();
@@ -128,7 +145,22 @@ export class MusicSession {
     this.#resource = undefined;
     this.queue.clear();
     this.#player.stop(true);
-    void this.#setStatus('');
+    this.#leaving = this.#leave();
+    return this.#leaving;
+  }
+
+  async #leave(): Promise<void> {
+    const status = this.#connection.state.status;
+    if (status !== VoiceConnectionStatus.Destroyed && status !== VoiceConnectionStatus.Disconnected) {
+      let timer: NodeJS.Timeout | undefined;
+      await Promise.race([
+        this.#setStatus(''),
+        new Promise<void>(resolve => { timer = setTimeout(resolve, STATUS_CLEAR_TIMEOUT_MS); }),
+      ]);
+      clearTimeout(timer);
+    }
+    // A /play during the clear joins through the same guild connection; leave it to the new session
+    if (sessions.has(this.guildId)) return;
     if (this.#connection.state.status !== VoiceConnectionStatus.Destroyed) this.#connection.destroy();
   }
 
@@ -140,7 +172,7 @@ export class MusicSession {
       this.#resource = undefined;
       const track = this.queue.advance();
       if (!track) {
-        this.destroy();
+        void this.destroy();
         return;
       }
       try {
@@ -158,7 +190,7 @@ export class MusicSession {
   // The status endpoint needs the bot to actually be in the channel, so wait for Ready first
   async #showStatus(status: string): Promise<void> {
     try {
-      await entersState(this.#connection, VoiceConnectionStatus.Ready, 20_000);
+      await entersState(this.#connection, VoiceConnectionStatus.Ready, this.#readyTimeoutMs);
     } catch {
       return;
     }
