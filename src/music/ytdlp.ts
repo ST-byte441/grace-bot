@@ -5,7 +5,14 @@ import type { ParsedVideo } from './parse.js';
 import type { TrackInfo } from './types.js';
 
 // Recent yt-dlp needs a JS runtime for YouTube; Node is already on the host
-const BASE_ARGS = ['--js-runtimes', 'node', '--no-warnings'];
+const JS_RUNTIME_ARGS = ['--js-runtimes', 'node'];
+const BASE_ARGS = [...JS_RUNTIME_ARGS, '--no-warnings'];
+
+// YTDLP_BIN overrides the binary (tests, or a non-PATH install)
+const ytdlpBin = () => process.env.YTDLP_BIN || 'yt-dlp';
+
+// yt-dlp is missing or failing as a whole (not just one bad video): usually it needs updating
+export class YtDlpError extends Error {}
 
 // Runs a command (no shell) and collects stdout; kills it after timeoutMs
 function run(cmd: string, args: string[], timeoutMs: number): Promise<{ code: number | null; stdout: string }> {
@@ -30,12 +37,14 @@ function run(cmd: string, args: string[], timeoutMs: number): Promise<{ code: nu
 }
 
 export async function searchYouTube(query: string, limit = 5): Promise<TrackInfo[]> {
-  const { stdout } = await run('yt-dlp', [...BASE_ARGS, '--flat-playlist', '--dump-json', `ytsearch${limit}:${query}`], 20_000);
+  const { code, stdout } = await run(ytdlpBin(), [...BASE_ARGS, '--flat-playlist', '--dump-json', `ytsearch${limit}:${query}`], 20_000);
+  if (code !== 0) throw new YtDlpError(`yt-dlp search exited ${code}`);
   return parseSearchLines(stdout).slice(0, limit);
 }
 
 export async function resolveVideo(url: string): Promise<ParsedVideo> {
-  const { code, stdout } = await run('yt-dlp', [...BASE_ARGS, '--dump-single-json', '--no-playlist', '--', url], 20_000);
+  const { code, stdout } = await run(ytdlpBin(), [...BASE_ARGS, '--dump-single-json', '--no-playlist', '--', url], 20_000);
+  if (code === null) throw new YtDlpError('yt-dlp did not run');
   if (code !== 0) return { ok: false, reason: 'unavailable' };
   return parseVideoJson(stdout);
 }
@@ -47,7 +56,9 @@ export interface AudioStream {
 
 // yt-dlp (best audio) piped into ffmpeg, which re-encodes to 48 kHz stereo Ogg/Opus for @discordjs/voice
 export function openAudioStream(url: string): AudioStream {
-  const ytdlp = spawn('yt-dlp', [...BASE_ARGS, '-f', 'bestaudio', '--no-playlist', '-q', '-o', '-', '--', url], {
+  // bestaudio/best: fall back to a muxed format (ffmpeg drops the video) when no audio-only one is offered.
+  // Warnings stay on here so stderr explains failed tracks in the logs
+  const ytdlp = spawn(ytdlpBin(), [...JS_RUNTIME_ARGS, '-f', 'bestaudio/best', '--no-playlist', '-q', '-o', '-', '--', url], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const ffmpeg = spawn('ffmpeg', [

@@ -3,9 +3,10 @@ import type { ChatInputCommandInteraction, Guild, GuildMember, User, VoiceBasedC
 import { buildQueueEmbed, isYouTubePlaylistOnly, isYouTubeUrl, toSelectOption } from '../music/format.js';
 import { MusicSession, getSession } from '../music/session.js';
 import type { Track, TrackInfo } from '../music/types.js';
-import { resolveVideo, searchYouTube } from '../music/ytdlp.js';
+import { YtDlpError, resolveVideo, searchYouTube } from '../music/ytdlp.js';
 
 const PICK_TIMEOUT_MS = 60_000;
+const YTDLP_DOWN = 'YouTube lookups are unavailable right now — try again later.';
 
 type Result<T> = { ok: true; value: T } | { ok: false; message: string };
 
@@ -96,10 +97,17 @@ async function handlePlay(interaction: ChatInputCommandInteraction, guild: Guild
 
   const chosen = results.find(r => r.id === pick.values[0]);
   if (!chosen) return pick.update({ content: "I can't play that video.", components: [] });
+  // Search results are unchecked: confirm the pick is playable (not private, age-restricted or live) before queueing
+  await pick.deferUpdate();
+  const video = await resolveVideo(chosen.url);
+  if (!video.ok) {
+    const content = video.reason === 'live' ? "Live streams aren't supported." : "I can't play that video.";
+    return interaction.editReply({ content, components: [] });
+  }
   // Re-check voice: the user or the bot may have moved while the picker was open
   const session = sessionForPlay(guild, interaction.user);
-  if (!session.ok) return pick.update({ content: session.message, components: [] });
-  return pick.update({ content: enqueue(session.value, chosen, interaction), components: [] });
+  if (!session.ok) return interaction.editReply({ content: session.message, components: [] });
+  return interaction.editReply({ content: enqueue(session.value, video.track, interaction), components: [] });
 }
 
 async function handleControl(interaction: ChatInputCommandInteraction, guild: Guild) {
@@ -143,9 +151,10 @@ export async function handleMusicCommand(interaction: ChatInputCommandInteractio
     return interaction.commandName === 'play' ? await handlePlay(interaction, guild) : await handleControl(interaction, guild);
   } catch (e) {
     console.error('[music]', `/${interaction.commandName} failed:`, e);
+    const content = e instanceof YtDlpError ? YTDLP_DOWN : 'Something went wrong.';
     try {
-      if (interaction.deferred || interaction.replied) await interaction.editReply({ content: 'Something went wrong.', components: [] });
-      else await interaction.reply({ content: 'Something went wrong.', ephemeral: true });
+      if (interaction.deferred || interaction.replied) await interaction.editReply({ content, components: [] });
+      else await interaction.reply({ content, ephemeral: true });
     } catch { /* interaction expired */ }
     return undefined;
   }

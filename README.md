@@ -9,7 +9,7 @@ A Discord bot for scheduling messages and reaction roles!
 
 ## Setup
 1. Clone the repository
-2. Install host tools for music: `sudo apt install -y ffmpeg pipx && pipx install yt-dlp && pipx ensurepath` (yt-dlp 2025.11 or newer; keep it updated with `pipx upgrade yt-dlp`, YouTube changes break old versions)
+2. Install host tools for music: `sudo apt install -y ffmpeg pipx && pipx install "yt-dlp[default]" && pipx ensurepath` (yt-dlp 2025.11 or newer; keep it updated with `pipx upgrade yt-dlp`, YouTube changes break old versions)
 3. Install dependencies: `npm install`
 4. Create `.env` file with your bot token and app ID:
    ```
