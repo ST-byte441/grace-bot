@@ -4,6 +4,7 @@ import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { handleReady } from './events/ready.js';
 import { handleInteractionCreate } from './events/interactionCreate.js';
 import { handleMessageReactionAdd, handleMessageReactionRemove } from './events/messageReaction.js';
+import { handleVoiceStateUpdate } from './events/voiceStateUpdate.js';
 
 // Environment validation
 if (!process.env.BOT_TOKEN || !process.env.APP_ID) {
@@ -16,7 +17,8 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMessageReactions
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildVoiceStates // Needed for music: joining voice and leave-on-empty
   ],
   partials: [ // Partials allow for partial input of objects 
     Partials.GuildMember,
@@ -31,5 +33,6 @@ client.once('ready', () => handleReady(client));
 client.on('interactionCreate', handleInteractionCreate);
 client.on('messageReactionAdd', handleMessageReactionAdd);
 client.on('messageReactionRemove', handleMessageReactionRemove);
+client.on('voiceStateUpdate', handleVoiceStateUpdate);
 
 client.login(process.env.BOT_TOKEN);

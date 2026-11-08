@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, InteractionContextType } from 'discord.js';
 
 export const commandData = [
   new SlashCommandBuilder() // Allows use of discords slash command definition
@@ -73,5 +73,21 @@ export const commandData = [
       sc.setName('reset')
         .setDescription('Reset a member\'s nickname')
         .addUserOption(o => o.setName('user').setDescription('Target user').setRequired(true)))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames) // Server admins can restrict to specific roles in Server Settings > Integrations
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames), // Server admins can restrict to specific roles in Server Settings > Integrations
+
+  // Music: open to everyone, guild-only
+  new SlashCommandBuilder()
+    .setName('play')
+    .setDescription('Play a song from YouTube')
+    .addStringOption(o => o.setName('query').setDescription('Song name or YouTube link').setRequired(true).setMaxLength(200))
+    .setContexts(InteractionContextType.Guild),
+  new SlashCommandBuilder().setName('skip').setDescription('Skip the current song').setContexts(InteractionContextType.Guild),
+  new SlashCommandBuilder().setName('queue').setDescription('Show the music queue').setContexts(InteractionContextType.Guild),
+  new SlashCommandBuilder()
+    .setName('remove')
+    .setDescription('Remove a song from the queue')
+    .addIntegerOption(o => o.setName('position').setDescription('Position in Up next').setRequired(true).setMinValue(1))
+    .setContexts(InteractionContextType.Guild),
+  new SlashCommandBuilder().setName('pause').setDescription('Pause the music').setContexts(InteractionContextType.Guild),
+  new SlashCommandBuilder().setName('resume').setDescription('Resume the music').setContexts(InteractionContextType.Guild),
 ].map(c => c.toJSON());

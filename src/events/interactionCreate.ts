@@ -3,6 +3,7 @@ import { handleRoleCommand } from '../commands/roleCommands.js';
 import { handleScheduleCommand } from '../commands/scheduleCommands.js';
 import { handleReactionRoleCommand } from '../commands/reactionRoleCommands.js';
 import { handleNicknameCommand } from '../commands/nicknameCommands.js';
+import { handleMusicCommand } from '../commands/musicCommands.js';
 
 export async function handleInteractionCreate(interaction: Interaction) {
   if (!interaction.isChatInputCommand()) return;
@@ -16,5 +17,12 @@ export async function handleInteractionCreate(interaction: Interaction) {
       return handleReactionRoleCommand(interaction);
     case 'nickname':
       return handleNicknameCommand(interaction);
+    case 'play':
+    case 'skip':
+    case 'queue':
+    case 'remove':
+    case 'pause':
+    case 'resume':
+      return handleMusicCommand(interaction);
   }
 }

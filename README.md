@@ -5,23 +5,27 @@ A Discord bot for scheduling messages and reaction roles!
 - 📅 Schedule messages with cron expressions and timezone support
 - 🎭 Reaction role assignment and removal
 - 👑 Role management commands with hierarchy checks
+- 🎵 Music: queue YouTube songs in voice chat
 
 ## Setup
 1. Clone the repository
-2. Install dependencies: `npm install`
-3. Create `.env` file with your bot token and app ID:
+2. Install host tools for music: `sudo apt install -y ffmpeg pipx && pipx install "yt-dlp[default]" && pipx ensurepath` (yt-dlp 2025.11 or newer; keep it updated with `pipx upgrade yt-dlp`, YouTube changes break old versions)
+3. Install dependencies: `npm install`
+4. Create `.env` file with your bot token and app ID:
    ```
    BOT_TOKEN=your_bot_token_here
    APP_ID=your_app_id_here
    TZ=America/Los_Angeles
    ```
-4. Register commands: `npm run register`
-5. Build and start: `npm run build && npm start`
+5. Register commands: `npm run register`
+6. Build and start: `npm run build && npm start`
 
 ## Development
 - `npm run dev` - Start in development mode with auto-restart
 - `npm run build` - Build TypeScript to JavaScript
-- `npm run register` - Register slash commands with Discord
+- `npm run register` - Register slash commands with Discord (globally)
+- `npm run register -- --guild <id>` / `-- --clear-guild <id>` - Register to / clear one server only, for testing
+- `npm test` - Run unit tests
 
 ## Production Deployment (PM2)
 
@@ -62,6 +66,11 @@ The bot will automatically start! No need to run anything.
 - `/reactionrole remove` - Remove emoji-role mapping.
 - `/reactionrole edit` - Edit an existing reaction role message content
 - `/nickname set/reset` - Change or reset another member's nickname (requires Manage Nicknames by default; restrict to specific roles under Server Settings → Integrations)
+- `/play <song or YouTube link>` - Search YouTube (pick from the top 5) or queue a link directly
+- `/skip`, `/pause`, `/resume`, `/remove <position>` - Control playback (must be in the bot's voice channel)
+- `/queue` - Show what's playing and up next
+
+The bot needs **Connect**, **Speak** and **Set Voice Channel Status** in voice channels. It shows the current song as the channel status and leaves when the queue ends or the channel empties.
 
 ## Troubleshooting
 
